@@ -18,3 +18,7 @@ target_link_libraries(position_1d
   ${CERES_LIBRARIES}
 )
 
+# Registra il test con CTest
+enable_testing()
+add_test(NAME Position1DTest COMMAND position_1d)
+
