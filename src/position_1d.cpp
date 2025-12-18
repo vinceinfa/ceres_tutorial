@@ -58,6 +58,29 @@ class Pos1DFactor : public ceres::SizedCostFunction<1,1>
         double m_position;
 };
 
+/**
+ * @brief Define a struct template with only the residual computation without writing the jacobian of the residual.
+ * It needs to AutoDiffCostFunction in test3.
+ * 
+ */
+struct Pos1DAutoDiffFactor
+{
+    Pos1DAutoDiffFactor(double z) : 
+    m_observation(z) 
+    {}
+
+    template <typename T>
+    bool operator()(const T* const x_hat, T* residual) const
+    {
+        // residual = z - x_hat
+        residual[0] = T(m_observation) - x_hat[0];
+        return true;
+    }
+
+    private:
+        double m_observation;
+};
+
 // Define problem variables
 // Real X value
 double x             = 5.0;
@@ -105,6 +128,7 @@ TEST(Position1D, AveragePoints)
 
     std::cout << "X_hat: " << x_hat << std::endl;
     std::cout << "x: "     << x << std::endl;
+    std::cout << "Optimization tooks: " << summary.total_time_in_seconds << std::endl;
 
     // Gtest success condition: difference between the real x and the estimate lower than 0.01
     EXPECT_NEAR(x_hat, x, 1e-2);
@@ -144,7 +168,53 @@ TEST(Position1D, AveragePointsWithParameterBlock)
 
     std::cout << "X_hat: " << x_hat << std::endl;
     std::cout << "x: "     << x << std::endl;
+    std::cout << "Optimization tooks: " << summary.total_time_in_seconds << std::endl;
 
     // Gtest success condition: difference between the real x and the estimate lower than 0.01
+    EXPECT_NEAR(x_hat, x, 1e-2);
+}
+
+// Try to elaborate the same test but with the ceres::AutoDiffCostFunction that doesn't need to compute jacobian
+// Note: This version should be lower than the previous one
+
+TEST(Position1D, AveragePoints_AutoDiff)
+{
+    std::cout << "Test3" << std::endl;
+
+    // Initial guess
+    double x_hat = init_x;
+
+    // Initialize optimization problem
+    ceres::Problem problem;
+
+    // Add observations
+    for (int i = 0; i < num_observation; i++)
+    {
+        // Generate a noisy measurement (z = x + noise) with a noise between -max_error and +max_error
+        double sample = x + noise_distribution(gen);
+
+        // Define the auto diff cost function
+        ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction< Pos1DAutoDiffFactor, // cost fun
+                                                                              1,                   // number of residuals
+                                                                              1                    // dimension of x_hat
+                                                                            >(new Pos1DAutoDiffFactor(sample));
+
+        problem.AddResidualBlock(cost_function, nullptr, &x_hat);
+    }
+
+    ceres::Solver::Options options;
+    options.max_num_iterations           = 50;
+    options.linear_solver_type           = ceres::DENSE_QR;
+    options.minimizer_progress_to_stdout = false;
+
+    ceres::Solver::Summary summary;
+
+    // Solve the problem
+    ceres::Solve(options, &problem, &summary);
+
+    std::cout << "X_hat: " << x_hat << std::endl;
+    std::cout << "x: "     << x << std::endl;
+    std::cout << "Optimization tooks: " << summary.total_time_in_seconds << std::endl;
+
     EXPECT_NEAR(x_hat, x, 1e-2);
 }
