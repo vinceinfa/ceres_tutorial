@@ -12,8 +12,8 @@
 
 // SizedCostFunction <number_of_residuals, parameters_dimension>
 // In our case:
-// - 1 residual
-// - 1 parameter (x_hat)
+// 1 dim - residual
+// 1 dim - parameter (x_hat)
 class Pos1DFactor : public ceres::SizedCostFunction<1,1>
 {
     public:
