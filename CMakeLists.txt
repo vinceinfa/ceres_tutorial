@@ -29,8 +29,20 @@ target_link_libraries(slam_1d
   ${CERES_LIBRARIES}
 )
 
+# Position 3D Tests
+add_executable(position_3d src/position_3d.cpp)
+
+target_link_libraries(position_3d
+  gtest
+  gtest_main
+  ${EIGEN3_LIBRARIES}
+  ${GTEST_LIBRARIES}
+  ${CERES_LIBRARIES}
+)
+
 # Registra il test con CTest
 enable_testing()
 add_test(NAME Position1DTest COMMAND position_1d)
 add_test(NAME Slam1dTest     COMMAND slam_1d)
+add_test(NAME Position3DTest COMMAND position_3d)
 
